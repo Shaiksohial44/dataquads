@@ -1,0 +1,169 @@
+# Live Fact Checker
+
+**Live Fact Checker** is a Chrome Extension that uses AI to check factual claims from YouTube videos and live streams in near real time.
+
+## Project Overview
+
+The extension captures speech from a video, identifies claims that can be fact-checked, verifies those claims using **Google Gemini with web grounding**, and displays the result in a Chrome side panel.
+
+### Main Flow
+
+**Speech → Transcript → Claim Detection → Web Verification → Fact-Check Result**
+
+## Key Features
+
+- Real-time fact checking for YouTube videos and live streams
+- YouTube caption transcription
+- Local audio transcription using Whisper
+- Microphone transcription
+- AI-based claim identification
+- Web-grounded verification with Gemini
+- Verdicts: **TRUE / FALSE / UNCERTAIN**
+- Confidence and explanation for each checked claim
+- Source links for verification
+- Batch analysis of complete YouTube videos
+- Exportable HTML fact-check reports
+- English and Spanish interface
+- Dark-mode Chrome side panel
+- Rate-limit-aware verification queue
+
+## Technology Stack
+
+- **Chrome Extension – Manifest V3**
+- **JavaScript, HTML, CSS**
+- **Google Gemini 2.0 Flash**
+- **Google Search grounding**
+- **Whisper / Transformers.js** for local transcription
+- **Chrome Side Panel API**
+- **YouTube captions and transcript data**
+
+## Project Structure
+
+```text
+live-fact-checker-main/
+├── manifest.json
+├── background.js
+├── content.js
+├── sidepanel.html
+├── sidepanel.css
+├── sidepanel.js
+├── whisper-sandbox.html
+├── icons/
+│   ├── icon16.png
+│   ├── icon48.png
+│   └── icon128.png
+└── README.md
+```
+
+### Important Files
+
+| File | Purpose |
+|---|---|
+| `manifest.json` | Chrome Extension configuration and permissions |
+| `background.js` | Background service worker and message routing |
+| `content.js` | Captures YouTube caption text |
+| `sidepanel.html` | Extension side-panel interface |
+| `sidepanel.css` | UI styling and dark theme |
+| `sidepanel.js` | Main fact-checking logic and API communication |
+| `whisper-sandbox.html` | Local Whisper transcription environment |
+
+## Installation
+
+### 1. Get a Gemini API Key
+
+Create an API key using **Google AI Studio**.
+
+Do not publish your API key in source code or share it publicly.
+
+### 2. Load the Extension in Chrome
+
+1. Extract the project ZIP.
+2. Open Chrome.
+3. Go to `chrome://extensions/`.
+4. Enable **Developer mode**.
+5. Select **Load unpacked**.
+6. Choose the `live-fact-checker-main` folder.
+
+### 3. Configure
+
+Open the extension side panel, open the settings, and enter your Gemini API key.
+
+## How to Use
+
+### Live Fact Checking
+
+1. Open a YouTube video or live stream.
+2. Open the **Live Fact Checker** side panel.
+3. Start fact checking.
+4. The extension captures transcript text and identifies factual claims.
+5. Claims are verified sequentially.
+6. The side panel shows the verdict, explanation, confidence, and sources.
+
+### Batch Video Analysis
+
+For a non-live YouTube video:
+
+1. Open the video.
+2. Select **Analyze Video**.
+3. The extension obtains the transcript.
+4. It identifies claims.
+5. It verifies the claims one by one.
+6. Review the final results and export a report if required.
+
+## Fact-Check Results
+
+The extension uses three main verdict categories:
+
+- **TRUE** – available evidence supports the claim.
+- **FALSE** – available evidence contradicts the claim.
+- **UNCERTAIN** – the available evidence is insufficient or the claim cannot be reliably verified.
+
+The system is designed to avoid treating broad generalizations as definite facts and attempts to consider counterevidence.
+
+## System Architecture
+
+```text
+YouTube / Microphone
+        │
+        ▼
+ Transcription
+        │
+        ▼
+ Claim Identification
+        │
+        ▼
+ Gemini + Web Grounding
+        │
+        ▼
+ Verification Queue
+        │
+        ▼
+ TRUE / FALSE / UNCERTAIN
+        │
+        ▼
+ Chrome Side Panel + Sources
+```
+
+## Important Notes
+
+- Internet access is required for Gemini-based verification.
+- A valid Gemini API key is required.
+- API usage is subject to the limits of the selected Gemini account/tier.
+- Fact-check results should be treated as AI-assisted research and checked against the provided sources for important decisions.
+- Keep API keys private.
+
+## Future Improvements
+
+- Add more languages.
+- Support additional video platforms.
+- Store previous fact-check results.
+- Improve source comparison and evidence summaries.
+- Package and publish the extension through the Chrome Web Store.
+
+## Credits
+
+The project uses:
+
+- Google Gemini for AI claim identification and verification
+- Whisper / Transformers.js for local speech transcription
+- Chrome Extension APIs for browser integration

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Whisper Sandbox</title></head>
+<body>
+<!--
+  Sandboxed page — runs in an isolated context with relaxed CSP.
+  Loads @xenova/transformers from CDN and runs Whisper locally.
+  Communicates with the side panel via window.postMessage.
+  Supports multilingual transcription via whisper-tiny (all langs)
+  or whisper-tiny.en (English-only, smaller/faster).
+-->
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+// Don't try to load models locally — always download from HF Hub
+env.allowLocalModels = false;
+
+let transcriber = null;
+let isLoading = false;
+let isReady = false;
+let currentModel = '';
+let currentLanguage = 'en';
+
+// Whisper language code mapping
+const WHISPER_LANGUAGES = {
+  'en': 'english', 'es': 'spanish', 'pt': 'portuguese', 'fr': 'french',
+  'de': 'german', 'it': 'italian', 'nl': 'dutch', 'pl': 'polish',
+  'ru': 'russian', 'uk': 'ukrainian', 'zh': 'chinese', 'ja': 'japanese',
+  'ko': 'korean', 'ar': 'arabic', 'hi': 'hindi', 'tr': 'turkish',
+  'vi': 'vietnamese', 'th': 'thai', 'sv': 'swedish',
+};
+
+// Notify parent that sandbox is alive
+window.parent.postMessage({ type: 'SANDBOX_ALIVE' }, '*');
+
+// Initialize whisper model
+async function initWhisper(modelName, language) {
+  // If same model is already loaded, just update language
+  if (isReady && currentModel === modelName) {
+    currentLanguage = language || 'en';
+    window.parent.postMessage({ type: 'WHISPER_STATUS', status: 'ready', message: 'Whisper ready (language updated)' }, '*');
+    return;
+  }
+
+  if (isLoading) return;
+  isLoading = true;
+  isReady = false;
+  transcriber = null;
+  currentLanguage = language || 'en';
+
+  const isMultilingual = !modelName.endsWith('.en');
+  const sizeNote = isMultilingual ? '~75MB' : '~40MB';
+
+  window.parent.postMessage({
+    type: 'WHISPER_STATUS', status: 'loading',
+    message: `Downloading Whisper model... (first time only, ${sizeNote})`
+  }, '*');
+
+  try {
+    transcriber = await pipeline(
+      'automatic-speech-recognition',
+      modelName,
+      {
+        quantized: true,
+        progress_callback: (progress) => {
+          if (progress.status === 'progress') {
+            const pct = Math.round((progress.loaded / progress.total) * 100);
+            window.parent.postMessage({
+              type: 'WHISPER_STATUS',
+              status: 'downloading',
+              message: `Downloading model: ${pct}%`,
+              progress: pct
+            }, '*');
+          }
+        }
+      }
+    );
+
+    currentModel = modelName;
+    isReady = true;
+    isLoading = false;
+    window.parent.postMessage({ type: 'WHISPER_STATUS', status: 'ready', message: 'Whisper model loaded!' }, '*');
+
+  } catch (err) {
+    isLoading = false;
+    window.parent.postMessage({
+      type: 'WHISPER_STATUS',
+      status: 'error',
+      message: 'Failed to load Whisper: ' + err.message
+    }, '*');
+  }
+}
+
+// Transcribe audio
+async function transcribe(audioData, requestId, language) {
+  if (!isReady || !transcriber) {
+    window.parent.postMessage({ type: 'WHISPER_RESULT', requestId, error: 'Model not ready' }, '*');
+    return;
+  }
+
+  const lang = language || currentLanguage || 'en';
+  const isMultilingual = !currentModel.endsWith('.en');
+
+  // Build transcription options
+  const options = {
+    chunk_length_s: 30,
+    stride_length_s: 5,
+    task: 'transcribe',
+    return_timestamps: false,
+  };
+
+  // Only set language for multilingual models
+  if (isMultilingual && lang !== 'en') {
+    options.language = WHISPER_LANGUAGES[lang] || lang;
+  } else {
+    options.language = 'english';
+  }
+
+  try {
+    const result = await transcriber(audioData, options);
+
+    window.parent.postMessage({
+      type: 'WHISPER_RESULT',
+      requestId,
+      text: result.text || ''
+    }, '*');
+
+  } catch (err) {
+    window.parent.postMessage({
+      type: 'WHISPER_RESULT',
+      requestId,
+      error: err.message
+    }, '*');
+  }
+}
+
+// Listen for messages from the side panel
+window.addEventListener('message', async (event) => {
+  const msg = event.data;
+
+  switch (msg.type) {
+    case 'INIT_WHISPER':
+      await initWhisper(msg.model, msg.language);
+      break;
+
+    case 'TRANSCRIBE':
+      // msg.audio is a Float32Array (16kHz mono PCM)
+      await transcribe(msg.audio, msg.requestId, msg.language);
+      break;
+
+    case 'PING':
+      window.parent.postMessage({ type: 'PONG', ready: isReady, loading: isLoading, model: currentModel, language: currentLanguage }, '*');
+      break;
+  }
+});
+</script>
+</body>
+</html>

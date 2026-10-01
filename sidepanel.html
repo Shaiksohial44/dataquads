@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Fact Checker</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <!-- ====== HEADER ====== -->
+  <header id="header">
+    <div class="header-row">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        <h1>Live Fact Checker</h1>
+      </div>
+      <button id="settingsBtn" class="icon-btn" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div id="statusBar" class="status-bar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText" data-i18n="status_ready">Ready</span>
+    </div>
+    <div id="progressWrap" class="progress-wrap hidden">
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-label" id="progressLabel">0%</span>
+    </div>
+  </header>
+
+  <!-- ====== SETTINGS PANEL (hidden by default) ====== -->
+  <div id="settingsPanel" class="settings-panel hidden">
+    <div class="settings-group">
+      <label data-i18n="settings_apikey">Gemini API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="AIza..." spellcheck="false">
+    </div>
+    <div class="settings-group">
+      <label data-i18n="settings_interval">Check Interval</label>
+      <div class="radio-row">
+        <label class="radio-label"><input type="radio" name="interval" value="5000"> ~5s</label>
+        <label class="radio-label"><input type="radio" name="interval" value="10000" checked> ~10s</label>
+        <label class="radio-label"><input type="radio" name="interval" value="20000"> ~20s</label>
+      </div>
+    </div>
+    <div class="settings-group">
+      <label data-i18n="settings_language">Language</label>
+      <select id="langSelect" class="select-input">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+      <p class="hint" data-i18n="settings_language_hint">Affects transcription, analysis language, and the interface.</p>
+    </div>
+    <div class="settings-group">
+      <label data-i18n="settings_mode">Transcription Mode</label>
+      <div class="radio-row" style="flex-direction:column;gap:6px">
+        <label class="radio-label"><input type="radio" name="mode" value="youtube" checked> <span data-i18n="mode_youtube">YouTube Captions (reads CC text)</span></label>
+        <label class="radio-label"><input type="radio" name="mode" value="tab_audio"> <span data-i18n="mode_tab_audio">Tab Audio (local Whisper — works on ANY tab)</span></label>
+        <label class="radio-label"><input type="radio" name="mode" value="mic"> <span data-i18n="mode_mic">Microphone (Web Speech API via your mic)</span></label>
+      </div>
+      <p class="hint" data-i18n="settings_mode_hint"><b>YouTube Captions</b>: reads CC directly from the page — best for YouTube.<br><b>Tab Audio</b>: captures tab audio and transcribes locally with Whisper (~40MB model, first time only).<br><b>Microphone</b>: uses your mic to pick up audio from speakers.</p>
+    </div>
+    <button id="saveSettingsBtn" class="btn btn-sm" data-i18n="settings_save">Save Settings</button>
+  </div>
+
+  <!-- ====== CONTEXT EDITOR ====== -->
+  <div id="contextSection" class="context-section">
+    <button id="contextToggle" class="section-toggle">
+      <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span data-i18n="context_title">Context</span>
+      <span id="contextBadge" class="badge" data-i18n="context_badge">auto-detected</span>
+    </button>
+    <div id="contextFields" class="context-fields hidden">
+      <div class="field">
+        <label data-i18n="context_speaker">Speaker / Channel</label>
+        <input type="text" id="ctxSpeaker" data-i18n-placeholder="context_speaker_ph" placeholder="e.g. President Biden">
+      </div>
+      <div class="field">
+        <label data-i18n="context_event">Event / Topic</label>
+        <input type="text" id="ctxEvent" data-i18n-placeholder="context_event_ph" placeholder="e.g. State of the Union 2025">
+      </div>
+      <div class="field">
+        <label data-i18n="context_custom">Additional Context</label>
+        <textarea id="ctxCustom" rows="2" data-i18n-placeholder="context_custom_ph" placeholder="Any extra info the AI should know..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== CONTROLS ====== -->
+  <div class="controls">
+    <button id="startBtn" class="btn btn-primary btn-lg">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <span data-i18n="btn_start">Start Fact-Checking</span>
+    </button>
+    <button id="stopBtn" class="btn btn-danger btn-lg hidden">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+      <span data-i18n="btn_stop">Stop</span>
+    </button>
+    <button id="clearBtn" class="btn btn-sm btn-ghost" title="Clear transcript" data-i18n="btn_clear">Clear</button>
+    <button id="analyzeNowBtn" class="btn btn-sm btn-accent-outline" title="Analyze full video transcript">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span data-i18n="btn_analyze_now">Analyze Video</span>
+    </button>
+    <button id="exportBtn" class="btn btn-sm btn-ghost" title="Export report" style="margin-left:auto">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span data-i18n="btn_export">Export</span>
+    </button>
+  </div>
+
+  <!-- ====== STATS BAR ====== -->
+  <div id="statsBar" class="stats-bar hidden">
+    <div class="stat">
+      <span class="stat-value" id="statWords">0</span>
+      <span class="stat-label" data-i18n="stat_words">words</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value" id="statClaims">0</span>
+      <span class="stat-label" data-i18n="stat_claims">claims</span>
+    </div>
+    <div class="stat stat-true">
+      <span class="stat-value" id="statTrue">0</span>
+      <span class="stat-label" data-i18n="stat_true">true</span>
+    </div>
+    <div class="stat stat-false">
+      <span class="stat-value" id="statFalse">0</span>
+      <span class="stat-label" data-i18n="stat_false">false</span>
+    </div>
+    <div class="stat stat-uncertain">
+      <span class="stat-value" id="statUncertain">0</span>
+      <span class="stat-label" data-i18n="stat_unclear">unclear</span>
+    </div>
+  </div>
+
+  <!-- ====== CLARIFICATION BANNER ====== -->
+  <div id="clarificationBanner" class="clarification-banner hidden">
+    <div class="clarification-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span data-i18n="clar_title">AI needs your help</span>
+      <button id="dismissClarification" class="icon-btn-sm">&times;</button>
+    </div>
+    <p id="clarificationQuestion"></p>
+    <div class="clarification-input-row">
+      <input type="text" id="clarificationInput" data-i18n-placeholder="clar_placeholder" placeholder="Type your answer...">
+      <button id="submitClarification" class="btn btn-sm btn-primary" data-i18n="clar_send">Send</button>
+    </div>
+  </div>
+
+  <!-- ====== TRANSCRIPT ====== -->
+  <div id="transcriptContainer" class="transcript-container">
+    <div id="transcript" class="transcript">
+      <p class="placeholder-text" data-i18n="transcript_placeholder">Transcript will appear here once you start...</p>
+    </div>
+  </div>
+
+  <!-- ====== CLAIM HOVER TOOLTIP ====== -->
+  <div id="claimTooltip" class="claim-tooltip hidden">
+    <div class="ct-verdict"></div>
+    <div class="ct-summary"></div>
+    <div class="ct-sources"></div>
+    <div class="ct-footer"></div>
+  </div>
+
+  <!-- ====== CLAIM DETAIL MODAL ====== -->
+  <div id="claimModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button id="closeModal" class="modal-close">&times;</button>
+      <div id="modalVerdict" class="modal-verdict"></div>
+      <blockquote id="modalClaim" class="modal-claim"></blockquote>
+      <div id="modalExplanation" class="modal-explanation"></div>
+      <div id="modalSources" class="modal-sources"></div>
+      <div id="modalConfidence" class="modal-confidence"></div>
+    </div>
+  </div>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="app-footer">
+    <span data-i18n="footer_built">Built by</span> <a href="https://twitter.com/alandaitch" target="_blank">@alandaitch</a>
+  </footer>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

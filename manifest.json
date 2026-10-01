@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "TruthLens AI",
+  "version": "2.0.0",
+  "description": "Real-time AI fact-checking for YouTube videos and live streams \u2014 Gemini + Whisper",
+  "author": "@alandaitch",
+  "homepage_url": "https://twitter.com/alandaitch",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "storage",
+    "tabs",
+    "tabCapture",
+    "offscreen",
+    "scripting"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "TruthLens AI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "*://*.youtube.com/*"
+  ],
+  "content_security_policy": {
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co; connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co blob: data:",
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co blob: data:;"
+  },
+  "sandbox": {
+    "pages": [
+      "whisper-sandbox.html"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "whisper-sandbox.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

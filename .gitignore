@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Packages
+node_modules/
+package-lock.json
+
+# Secrets — never commit API keys
+.env
+*.key
+
+# Chrome extension packaging
+*.crx
+*.pem
+*.zip
