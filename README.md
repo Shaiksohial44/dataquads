@@ -124,6 +124,3 @@ Powered by:
 - [Whisper](https://huggingface.co/Xenova/whisper-tiny) via [transformers.js](https://github.com/xenova/transformers.js) — local audio transcription
 - [Chrome Side Panel API](https://developer.chrome.com/docs/extensions/reference/api/sidePanel)
 
-## License
-
-MIT — see [LICENSE](LICENSE)
